@@ -17,9 +17,6 @@
             --blue: #4e8fe8;
             --blue-dim: rgba(78,143,232,0.12);
             --green: #5aa87a;
-            --green-dim: rgba(90,168,122,0.12);
-            --red: #e06060;
-            --red-dim: rgba(224,96,96,0.12);
             --text: #e4e4ec;
             --muted: #7878a0;
             --dim: #3a3a58;
@@ -36,7 +33,67 @@
 
         .container { max-width: 800px; margin: 0 auto; }
 
-        /* Header */
+        /* ── Setup screen ── */
+        #setup-screen {
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .setup-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 2.5rem;
+            width: 100%; max-width: 460px;
+            display: flex; flex-direction: column; gap: 1.25rem;
+        }
+        .setup-icon {
+            width: 52px; height: 52px;
+            background: var(--accent-dim);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+        }
+        .setup-title { font-size: 1.2rem; font-weight: 800; }
+        .setup-desc  { font-size: 0.84rem; color: var(--muted); line-height: 1.6; }
+        .setup-desc a { color: var(--accent); }
+
+        .input-wrap { display: flex; flex-direction: column; gap: 0.4rem; }
+        .input-label { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+        .token-input {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--rs);
+            padding: 0.75rem 1rem;
+            color: var(--text);
+            font-size: 0.84rem;
+            font-family: monospace;
+            width: 100%;
+            transition: border-color 0.15s;
+        }
+        .token-input:focus { outline: none; border-color: var(--accent); }
+        .token-input::placeholder { color: var(--dim); }
+
+        .setup-note {
+            font-size: 0.75rem; color: var(--dim);
+            background: var(--surface2);
+            border-radius: var(--rs);
+            padding: 0.75rem 1rem;
+            line-height: 1.5;
+        }
+
+        .btn-save {
+            padding: 0.85rem;
+            background: var(--accent); color: #0c0c0e;
+            border: none; border-radius: var(--rs);
+            font-size: 0.9rem; font-weight: 700;
+            cursor: pointer; font-family: inherit;
+            transition: background 0.15s;
+        }
+        .btn-save:hover { background: #ddb870; }
+
+        /* ── Dashboard ── */
+        #dashboard-screen { display: none; }
+
         .page-header {
             display: flex; align-items: center; justify-content: space-between;
             margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
@@ -44,77 +101,63 @@
         .page-title { font-size: 1.4rem; font-weight: 800; }
         .page-sub   { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
 
-        .btn-refresh {
-            padding: 0.55rem 1.1rem;
+        .header-actions { display: flex; gap: 0.5rem; }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
             background: var(--surface); border: 1px solid var(--border);
             border-radius: var(--rs); color: var(--muted);
-            font-size: 0.82rem; font-weight: 600; cursor: pointer;
+            font-size: 0.78rem; font-weight: 600; cursor: pointer;
             font-family: inherit; transition: all 0.15s;
         }
-        .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-sm.danger:hover { border-color: #e06060; color: #e06060; }
 
-        /* Summary cards */
+        /* Summary */
         .summary-grid {
             display: grid; grid-template-columns: repeat(3, 1fr);
             gap: 0.75rem; margin-bottom: 1.5rem;
         }
         .stat-card {
             background: var(--surface); border: 1px solid var(--border);
-            border-radius: var(--r); padding: 1.25rem;
-            text-align: center;
+            border-radius: var(--r); padding: 1.25rem; text-align: center;
         }
-        .stat-val  { font-size: 2rem; font-weight: 800; line-height: 1; }
-        .stat-label{ font-size: 0.75rem; color: var(--muted); margin-top: 0.4rem; }
+        .stat-val   { font-size: 2rem; font-weight: 800; line-height: 1; }
+        .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 0.4rem; }
         .stat-card.accent .stat-val { color: var(--accent); }
         .stat-card.blue   .stat-val { color: var(--blue);   }
         .stat-card.green  .stat-val { color: var(--green);  }
 
         /* Track table */
         .section-title {
-            font-size: 0.8rem; font-weight: 700; color: var(--muted);
+            font-size: 0.78rem; font-weight: 700; color: var(--muted);
             letter-spacing: 0.06em; text-transform: uppercase;
             margin-bottom: 0.75rem;
         }
 
         .track-table {
             background: var(--surface); border: 1px solid var(--border);
-            border-radius: var(--r); overflow: hidden;
-            margin-bottom: 1.5rem;
+            border-radius: var(--r); overflow: hidden; margin-bottom: 1.5rem;
         }
-
         .track-row {
             display: grid;
-            grid-template-columns: 90px 1fr 70px 70px 70px 60px;
+            grid-template-columns: 90px 1fr 60px 60px 60px 60px;
             align-items: center;
             padding: 0.75rem 1rem;
             border-bottom: 1px solid var(--border);
-            gap: 0.5rem;
-            font-size: 0.84rem;
+            gap: 0.5rem; font-size: 0.84rem;
         }
         .track-row:last-child { border-bottom: none; }
         .track-row.header {
-            font-size: 0.72rem; color: var(--muted); font-weight: 700;
-            background: var(--surface2); letter-spacing: 0.04em;
-            text-transform: uppercase;
+            font-size: 0.7rem; color: var(--muted); font-weight: 700;
+            background: var(--surface2); letter-spacing: 0.04em; text-transform: uppercase;
         }
+        .track-name { font-weight: 600; }
 
-        .track-name { color: var(--text); font-weight: 600; }
-
-        /* Bar */
-        .bar-wrap {
-            display: flex; align-items: center; gap: 6px;
-            width: 100%;
-        }
-        .bar-bg {
-            flex: 1; height: 6px; background: var(--border);
-            border-radius: 3px; overflow: hidden;
-        }
-        .bar-fill {
-            height: 100%; border-radius: 3px;
-            transition: width 0.5s ease;
-        }
+        .bar-wrap { display: flex; align-items: center; gap: 6px; width: 100%; }
+        .bar-bg   { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 3px; }
         .bar-fill.rm { background: var(--accent); }
-        .bar-fill.og { background: var(--blue); }
 
         .count-rm { color: var(--accent); font-weight: 700; text-align: right; }
         .count-og { color: var(--blue);   font-weight: 700; text-align: right; }
@@ -129,7 +172,6 @@
             background: var(--surface); border: 1px solid var(--border);
             border-radius: var(--rs); overflow: hidden;
         }
-
         .session-header {
             display: flex; align-items: center; justify-content: space-between;
             padding: 0.75rem 1rem; cursor: pointer; gap: 0.5rem;
@@ -137,20 +179,20 @@
         }
         .session-header:hover { background: var(--surface2); }
 
-        .session-id   { font-size: 0.8rem; font-weight: 700; color: var(--accent); font-family: monospace; }
-        .session-time { font-size: 0.72rem; color: var(--muted); }
-        .session-score{ font-size: 0.78rem; color: var(--muted); }
-        .session-toggle { font-size: 0.7rem; color: var(--dim); }
+        .session-id    { font-size: 0.78rem; font-weight: 700; color: var(--accent); font-family: monospace; }
+        .session-time  { font-size: 0.72rem; color: var(--muted); }
+        .session-score { font-size: 0.78rem; color: var(--muted); }
+        .session-toggle{ font-size: 0.7rem; color: var(--dim); transition: transform 0.2s; }
+        .session-toggle.open { transform: rotate(180deg); }
 
         .session-body {
-            display: none;
             border-top: 1px solid var(--border);
             padding: 0.75rem 1rem;
-            display: grid;
+            display: none;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 0.4rem;
         }
-        .session-body.hidden { display: none; }
+        .session-body.open { display: grid; }
 
         .session-track {
             display: flex; justify-content: space-between; align-items: center;
@@ -166,68 +208,123 @@
         .sbadge.same       { background: var(--surface2);    color: var(--muted);  }
 
         /* States */
-        .loading, .empty, .error {
-            text-align: center; padding: 4rem 2rem;
-            color: var(--muted); font-size: 0.9rem;
+        .loading, .empty, .error-msg {
+            text-align: center; padding: 3rem 2rem;
+            color: var(--muted); font-size: 0.9rem; line-height: 1.8;
         }
         .spinner {
-            display: inline-block; width: 28px; height: 28px;
-            border: 3px solid var(--border);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 1rem;
+            display: inline-block; width: 24px; height: 24px;
+            border: 3px solid var(--border); border-top-color: var(--accent);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            margin-bottom: 0.75rem;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        @media (max-width: 600px) {
-            .summary-grid { grid-template-columns: repeat(3, 1fr); }
+        @media (max-width: 540px) {
             .track-row { grid-template-columns: 70px 1fr 50px 50px 50px 50px; font-size: 0.75rem; }
         }
     </style>
 </head>
 <body>
-<div class="container">
 
+<!-- ── 첫 실행: 토큰 입력 ── -->
+<div id="setup-screen">
+    <div class="setup-card">
+        <div class="setup-icon">🔑</div>
+        <div>
+            <div class="setup-title">GitHub 토큰 설정</div>
+        </div>
+        <p class="setup-desc">
+            결과 레포(<code>blind-test-results</code>)를 읽기 위한 Fine-grained PAT를 입력하세요.<br>
+            토큰은 이 브라우저에만 저장되며 코드나 GitHub에는 전혀 업로드되지 않습니다.
+        </p>
+
+        <div class="input-wrap">
+            <div class="input-label">GitHub Fine-grained PAT</div>
+            <input
+                type="password"
+                id="token-input"
+                class="token-input"
+                placeholder="github_pat_..."
+                onkeydown="if(event.key==='Enter') saveToken()"
+            >
+        </div>
+
+        <div class="setup-note">
+            발급 방법: GitHub → Settings → Developer settings<br>
+            → Fine-grained tokens → Generate new token<br>
+            → blind-test-results 레포 선택 → Contents: Read-only
+        </div>
+
+        <button class="btn-save" onclick="saveToken()">저장 후 결과 보기</button>
+    </div>
+</div>
+
+<!-- ── 대시보드 ── -->
+<div id="dashboard-screen" class="container">
     <div class="page-header">
         <div>
             <div class="page-title">블라인드 테스트 결과</div>
             <div class="page-sub" id="last-updated">로딩 중...</div>
         </div>
-        <button class="btn-refresh" onclick="load()">새로고침</button>
-    </div>
-
-    <div id="main">
-        <div class="loading">
-            <div class="spinner"></div><br>결과를 불러오는 중...
+        <div class="header-actions">
+            <button class="btn-sm" onclick="load()">새로고침</button>
+            <button class="btn-sm danger" onclick="clearToken()">토큰 초기화</button>
         </div>
     </div>
 
+    <div id="main">
+        <div class="loading"><div class="spinner"></div><br>결과를 불러오는 중...</div>
+    </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════
-//  CONFIG — 수정 불필요 (자동 세팅됨)
-// ═══════════════════════════════════════
 const OWNER  = 'YuanArchive';
 const REPO   = 'blind-test-results';
-const TOKEN  = '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';
 const BRANCH = 'main';
 const API    = 'https://api.github.com';
-// ═══════════════════════════════════════
+const LS_KEY = 'blindtest_token';
 
-const headers = {
-    'Authorization':        `Bearer ${TOKEN}`,
-    'X-GitHub-Api-Version': '2022-11-28',
-};
+function getToken() { return localStorage.getItem(LS_KEY) || ''; }
+
+function saveToken() {
+    const t = document.getElementById('token-input').value.trim();
+    if (!t) { alert('토큰을 입력해 주세요.'); return; }
+    localStorage.setItem(LS_KEY, t);
+    showDashboard();
+}
+
+function clearToken() {
+    localStorage.removeItem(LS_KEY);
+    document.getElementById('dashboard-screen').style.display = 'none';
+    document.getElementById('setup-screen').style.display = 'flex';
+    document.getElementById('token-input').value = '';
+}
+
+function showDashboard() {
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('dashboard-screen').style.display = 'block';
+    load();
+}
 
 async function load() {
     document.getElementById('main').innerHTML =
         '<div class="loading"><div class="spinner"></div><br>결과를 불러오는 중...</div>';
 
+    const token = getToken();
+    const headers = {
+        'Authorization':        `Bearer ${token}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+    };
+
     try {
-        // 1. results/ 폴더 파일 목록
         const listRes = await fetch(`${API}/repos/${OWNER}/${REPO}/contents/results`, { headers });
+
+        if (listRes.status === 401) {
+            document.getElementById('main').innerHTML =
+                '<div class="error-msg">토큰이 유효하지 않습니다.<br>오른쪽 위 "토큰 초기화"를 눌러 다시 입력하세요.</div>';
+            return;
+        }
 
         if (listRes.status === 404) {
             document.getElementById('main').innerHTML =
@@ -241,12 +338,10 @@ async function load() {
         const files = (await listRes.json()).filter(f => f.name.endsWith('.json'));
 
         if (files.length === 0) {
-            document.getElementById('main').innerHTML =
-                '<div class="empty">아직 결과가 없습니다.</div>';
+            document.getElementById('main').innerHTML = '<div class="empty">아직 결과가 없습니다.</div>';
             return;
         }
 
-        // 2. 각 파일 내용 가져오기
         const sessions = (await Promise.all(
             files.map(f =>
                 fetch(f.url, { headers })
@@ -254,7 +349,7 @@ async function load() {
                     .then(d => JSON.parse(atob(d.content.replace(/\n/g, ''))))
                     .catch(() => null)
             )
-        )).filter(Boolean);
+        )).filter(Boolean).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         render(sessions);
         document.getElementById('last-updated').textContent =
@@ -262,19 +357,16 @@ async function load() {
 
     } catch (e) {
         document.getElementById('main').innerHTML =
-            `<div class="error">오류: ${e.message}<br><br>토큰이 유효한지 확인하세요.</div>`;
+            `<div class="error-msg">오류: ${e.message}</div>`;
     }
 }
 
 function render(sessions) {
-    // ── 집계 ──
     const trackMap = {};
-
     sessions.forEach(s => {
         s.results.forEach(r => {
-            if (!trackMap[r.trackId]) {
+            if (!trackMap[r.trackId])
                 trackMap[r.trackId] = { id: r.trackId, title: r.title, remastered: 0, original: 0, same: 0 };
-            }
             trackMap[r.trackId][r.preferred]++;
         });
     });
@@ -282,39 +374,21 @@ function render(sessions) {
     const tracks = Object.values(trackMap).sort((a, b) => a.id - b.id);
     const total  = sessions.length;
 
-    // 전체 리마스터링 선호 (same 제외)
     let totalVotes = 0, totalRM = 0;
-    tracks.forEach(t => {
-        totalRM += t.remastered;
-        totalVotes += t.remastered + t.original;
-    });
+    tracks.forEach(t => { totalRM += t.remastered; totalVotes += t.remastered + t.original; });
     const rmPct = totalVotes ? Math.round(totalRM / totalVotes * 100) : 0;
 
-    // ── 렌더링 ──
-    const el = document.getElementById('main');
-    el.innerHTML = `
-        <!-- 요약 -->
+    document.getElementById('main').innerHTML = `
         <div class="summary-grid">
-            <div class="stat-card accent">
-                <div class="stat-val">${total}</div>
-                <div class="stat-label">총 참여자</div>
-            </div>
-            <div class="stat-card green">
-                <div class="stat-val">${rmPct}%</div>
-                <div class="stat-label">리마스터링 선호율</div>
-            </div>
-            <div class="stat-card blue">
-                <div class="stat-val">${100 - rmPct}%</div>
-                <div class="stat-label">오리지널 선호율</div>
-            </div>
+            <div class="stat-card accent"><div class="stat-val">${total}</div><div class="stat-label">총 참여자</div></div>
+            <div class="stat-card green"><div class="stat-val">${rmPct}%</div><div class="stat-label">리마스터링 선호율</div></div>
+            <div class="stat-card blue"><div class="stat-val">${100-rmPct}%</div><div class="stat-label">오리지널 선호율</div></div>
         </div>
 
-        <!-- 트랙별 -->
         <div class="section-title">트랙별 결과</div>
         <div class="track-table">
             <div class="track-row header">
-                <div>트랙</div>
-                <div>리마스터링</div>
+                <div>트랙</div><div>리마스터링 비율</div>
                 <div style="text-align:right">리마</div>
                 <div style="text-align:right">원본</div>
                 <div style="text-align:right">동일</div>
@@ -323,14 +397,11 @@ function render(sessions) {
             ${tracks.map(t => {
                 const votes = t.remastered + t.original;
                 const pct   = votes ? Math.round(t.remastered / votes * 100) : 0;
-                const rmW   = votes ? (t.remastered / votes * 100) : 0;
                 return `
                 <div class="track-row">
                     <div class="track-name">${t.title}</div>
                     <div class="bar-wrap">
-                        <div class="bar-bg">
-                            <div class="bar-fill rm" style="width:${rmW}%"></div>
-                        </div>
+                        <div class="bar-bg"><div class="bar-fill rm" style="width:${pct}%"></div></div>
                     </div>
                     <div class="count-rm">${t.remastered}</div>
                     <div class="count-og">${t.original}</div>
@@ -340,28 +411,25 @@ function render(sessions) {
             }).join('')}
         </div>
 
-        <!-- 개별 세션 -->
         <div class="section-title">개별 응답 (${sessions.length}명)</div>
         <div class="sessions-list">
             ${sessions.map((s, i) => {
-                const rm = s.results.filter(r => r.preferred === 'remastered').length;
+                const rm   = s.results.filter(r => r.preferred === 'remastered').length;
                 const date = new Date(s.timestamp).toLocaleString('ko-KR');
-                const bodyId = `sb${i}`;
                 return `
                 <div class="session-card">
-                    <div class="session-header" onclick="toggle('${bodyId}')">
+                    <div class="session-header" onclick="toggle(${i})">
                         <span class="session-id">${s.sessionId}</span>
                         <span class="session-time">${date}</span>
-                        <span class="session-score">리마스터링 ${rm} / ${s.results.length}</span>
-                        <span class="session-toggle">▼</span>
+                        <span class="session-score">리마 ${rm}/${s.results.length}</span>
+                        <span class="session-toggle" id="arr${i}">▼</span>
                     </div>
-                    <div class="session-body hidden" id="${bodyId}">
+                    <div class="session-body" id="sb${i}">
                         ${s.results.map(r => `
                             <div class="session-track">
                                 <span class="session-track-name">${r.title}</span>
                                 <span class="sbadge ${r.preferred}">${
-                                    r.preferred === 'remastered' ? '리마스터링' :
-                                    r.preferred === 'original'   ? '오리지널'   : '차이없음'
+                                    r.preferred==='remastered'?'리마스터링':r.preferred==='original'?'오리지널':'차이없음'
                                 }</span>
                             </div>`).join('')}
                     </div>
@@ -371,12 +439,15 @@ function render(sessions) {
     `;
 }
 
-function toggle(id) {
-    const el = document.getElementById(id);
-    el.classList.toggle('hidden');
+function toggle(i) {
+    const body = document.getElementById(`sb${i}`);
+    const arr  = document.getElementById(`arr${i}`);
+    body.classList.toggle('open');
+    arr.classList.toggle('open');
 }
 
-load();
+// 시작: 토큰 있으면 바로 대시보드, 없으면 입력 화면
+if (getToken()) showDashboard();
 </script>
 </body>
 </html>
