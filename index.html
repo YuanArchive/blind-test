@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>리마스터링 블라인드 테스트</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0c0c0e;
+            --surface: #161619;
+            --surface2: #1c1c21;
+            --border: #2c2c38;
+            --border-hi: #4a4a60;
+            --accent: #c8a96e;
+            --accent-dim: rgba(200,169,110,0.12);
+            --blue: #4e8fe8;
+            --blue-dim: rgba(78,143,232,0.12);
+            --green: #5aa87a;
+            --text: #e4e4ec;
+            --muted: #7878a0;
+            --dim: #3a3a58;
+            --r: 12px;
+            --rs: 8px;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            max-width: 660px;
+            gap: 1.25rem;
+            animation: up 0.3s ease;
+        }
+        .screen.active { display: flex; }
+
+        @keyframes up {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── CARD ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 1.5rem;
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--rs);
+            border: 1px solid transparent;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; }
+
+        .btn-primary { background: var(--accent); color: #0c0c0e; }
+        .btn-primary:not(:disabled):hover { background: #ddb870; transform: translateY(-1px); }
+
+        .btn-ghost { background: transparent; color: var(--muted); border-color: var(--border); }
+        .btn-ghost:not(:disabled):hover { border-color: var(--border-hi); color: var(--text); }
+
+        .btn-lg { padding: 0.95rem 2rem; font-size: 1rem; }
+        .btn-full { width: 100%; }
+
+        /* ══════════════════════════════
+           INTRO SCREEN
+        ══════════════════════════════ */
+        #screen-intro { text-align: center; align-items: center; }
+
+        .hero-icon {
+            width: 72px; height: 72px;
+            background: var(--accent-dim);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem;
+        }
+
+        .hero-title { font-size: 1.8rem; font-weight: 800; margin-top: 0.5rem; }
+        .hero-sub   { color: var(--accent); font-size: 0.85rem; letter-spacing: 0.05em; margin-top: 0.25rem; }
+
+        .steps { display: flex; flex-direction: column; gap: 1rem; text-align: left; }
+        .step  { display: flex; align-items: flex-start; gap: 0.875rem; }
+        .step-n {
+            flex-shrink: 0; width: 24px; height: 24px;
+            background: var(--accent-dim); color: var(--accent);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.72rem; font-weight: 700; margin-top: 0.15rem;
+        }
+        .step-t { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+        .step-t strong { color: var(--text); }
+
+        /* ══════════════════════════════
+           TEST SCREEN
+        ══════════════════════════════ */
+        .test-header {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .track-counter { font-size: 0.82rem; color: var(--muted); }
+        .track-counter strong { color: var(--accent); font-size: 1rem; }
+
+        .dots { display: flex; gap: 5px; }
+        .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--border); transition: background 0.25s;
+        }
+        .dot.done    { background: var(--accent); }
+        .dot.current { background: var(--blue); }
+
+        /* Player grid */
+        .player-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.875rem;
+        }
+
+        .player-card {
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: var(--r);
+            padding: 1.5rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.875rem;
+            transition: border-color 0.2s, background 0.2s;
+            cursor: default;
+        }
+        .player-card.is-playing {
+            border-color: var(--blue);
+            background: linear-gradient(160deg, var(--surface) 60%, var(--blue-dim));
+        }
+
+        .player-letter {
+            font-size: 3rem; font-weight: 900; line-height: 1;
+            color: var(--dim); letter-spacing: -0.04em;
+            transition: color 0.2s;
+        }
+        .player-card.is-playing .player-letter { color: var(--blue); }
+
+        .play-btn {
+            width: 54px; height: 54px; border-radius: 50%;
+            background: var(--surface2);
+            border: 2px solid var(--border-hi);
+            color: var(--muted);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .play-btn:hover { border-color: var(--blue); color: var(--blue); transform: scale(1.06); }
+        .player-card.is-playing .play-btn { border-color: var(--blue); color: var(--blue); }
+
+        /* Progress */
+        .audio-prog { width: 100%; }
+        .prog-track {
+            width: 100%; height: 4px;
+            background: var(--border); border-radius: 2px;
+            cursor: pointer; position: relative; margin-bottom: 0.4rem;
+        }
+        .prog-fill {
+            height: 100%; border-radius: 2px;
+            background: var(--blue); width: 0%;
+            pointer-events: none;
+        }
+        .time-row {
+            display: flex; justify-content: space-between;
+            font-size: 0.68rem; color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Vote */
+        .vote-prompt {
+            text-align: center; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.75rem;
+        }
+        .vote-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.625rem;
+        }
+        .vote-btn {
+            padding: 0.75rem 0.5rem;
+            border-radius: var(--rs);
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 0.84rem; font-weight: 600;
+            cursor: pointer; transition: all 0.15s;
+            font-family: inherit; text-align: center;
+        }
+        .vote-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .vote-btn.selected { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+        .nav-row { display: flex; justify-content: flex-end; }
+
+        .hint { text-align: center; font-size: 0.76rem; color: var(--dim); }
+
+        /* ══════════════════════════════
+           DONE SCREEN
+        ══════════════════════════════ */
+        #screen-done { align-items: center; text-align: center; }
+
+        .done-icon {
+            width: 72px; height: 72px;
+            background: rgba(90,168,122,0.15);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem;
+        }
+
+        .score-line { color: var(--muted); font-size: 0.95rem; margin-top: 0.25rem; }
+        .score-line strong { color: var(--accent); font-size: 1.5rem; font-weight: 800; }
+
+        .result-list { width: 100%; display: flex; flex-direction: column; gap: 0.5rem; }
+
+        .result-row {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--rs);
+            padding: 0.75rem 1rem;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.84rem;
+        }
+        .result-row .rname { color: var(--muted); }
+
+        .badge {
+            padding: 0.2rem 0.65rem; border-radius: 5px;
+            font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em;
+        }
+        .badge.remastered { background: var(--accent-dim); color: var(--accent); }
+        .badge.original   { background: var(--blue-dim);   color: var(--blue);   }
+        .badge.same       { background: var(--surface2);    color: var(--muted);  }
+
+        .action-row { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed; bottom: 1.5rem; left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 24px; padding: 0.55rem 1.25rem;
+            font-size: 0.8rem; color: var(--muted);
+            opacity: 0; transition: opacity 0.3s;
+            pointer-events: none; white-space: nowrap; z-index: 999;
+        }
+        .toast.show { opacity: 1; }
+
+        /* Mobile */
+        @media (max-width: 480px) {
+            body { padding: 1rem; }
+            .player-letter { font-size: 2.5rem; }
+            .hero-title { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════ INTRO ══════════════ -->
+<div id="screen-intro" class="screen active">
+    <div class="hero-icon">🎧</div>
+    <h1 class="hero-title">블라인드 청취 테스트</h1>
+    <p class="hero-sub">REMASTERING BLIND TEST</p>
+
+    <div class="card steps">
+        <div class="step">
+            <div class="step-n">1</div>
+            <div class="step-t">각 트랙에서 <strong>버전 A</strong>와 <strong>버전 B</strong>를 재생해 들어보세요. 어느 버전이 원본인지는 알 수 없습니다.</div>
+        </div>
+        <div class="step">
+            <div class="step-n">2</div>
+            <div class="step-t"><strong>자유롭게 반복 청취</strong>한 후, 더 좋게 들리는 쪽을 고르세요. 정답은 없습니다.</div>
+        </div>
+        <div class="step">
+            <div class="step-n">3</div>
+            <div class="step-t">10개 트랙 완료 후 <strong>결과가 공개</strong>됩니다. 좋은 헤드폰이나 이어폰을 권장합니다.</div>
+        </div>
+    </div>
+
+    <button class="btn btn-primary btn-lg btn-full" onclick="startTest()">테스트 시작하기 →</button>
+</div>
+
+<!-- ══════════════ TEST ══════════════ -->
+<div id="screen-test" class="screen">
+    <div class="test-header">
+        <div class="track-counter">트랙 <strong id="track-num">1</strong> / <span id="track-total">10</span></div>
+        <div class="dots" id="dots"></div>
+    </div>
+
+    <div class="player-grid">
+        <!-- A -->
+        <div class="player-card" id="card-a">
+            <div class="player-letter">A</div>
+            <button class="play-btn" id="btn-a" onclick="togglePlay('a')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="icon-a">
+                    <polygon points="5,3 19,12 5,21"/>
+                </svg>
+            </button>
+            <div class="audio-prog">
+                <div class="prog-track" id="ptrack-a" onclick="seek(event,'a')">
+                    <div class="prog-fill" id="pfill-a"></div>
+                </div>
+                <div class="time-row">
+                    <span id="tcur-a">0:00</span>
+                    <span id="tdur-a">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- B -->
+        <div class="player-card" id="card-b">
+            <div class="player-letter">B</div>
+            <button class="play-btn" id="btn-b" onclick="togglePlay('b')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="icon-b">
+                    <polygon points="5,3 19,12 5,21"/>
+                </svg>
+            </button>
+            <div class="audio-prog">
+                <div class="prog-track" id="ptrack-b" onclick="seek(event,'b')">
+                    <div class="prog-fill" id="pfill-b"></div>
+                </div>
+                <div class="time-row">
+                    <span id="tcur-b">0:00</span>
+                    <span id="tdur-b">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="hint">양쪽을 충분히 들어보신 후 아래에서 선택해 주세요</p>
+
+    <div>
+        <p class="vote-prompt">어느 버전이 더 좋게 들리나요?</p>
+        <div class="vote-grid">
+            <button class="vote-btn" id="vbtn-a"    onclick="castVote('A')">A 선호</button>
+            <button class="vote-btn" id="vbtn-same" onclick="castVote('same')">차이 없음</button>
+            <button class="vote-btn" id="vbtn-b"    onclick="castVote('B')">B 선호</button>
+        </div>
+    </div>
+
+    <div class="nav-row">
+        <button class="btn btn-primary" id="btn-next" onclick="nextTrack()" disabled>다음 →</button>
+    </div>
+</div>
+
+<!-- ══════════════ DONE ══════════════ -->
+<div id="screen-done" class="screen">
+    <div class="done-icon">✓</div>
+    <h2>테스트 완료</h2>
+    <p class="score-line">리마스터링 버전을 <strong id="score">—</strong> / <span id="score-total">10</span> 트랙에서 선호하셨습니다</p>
+
+    <div class="result-list" id="result-list"></div>
+
+    <div class="action-row">
+        <button class="btn btn-ghost" onclick="downloadCSV()">📥 결과 다운로드 (CSV)</button>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════╗
+// ║  ⚙️  CONFIG — 이 섹션만 수정하세요                     ║
+// ╚══════════════════════════════════════════════════════╝
+
+const CONFIG = {
+    // ═══════════════════════════════════════════════════════
+    //  방법 A — GitHub 직접 저장 (git pull로 확인)          ★추천★
+    //  1. 결과 저장용 레포를 별도로 만드세요 (private 가능)
+    //  2. github.com → Settings → Developer settings
+    //     → Fine-grained tokens → Generate new token
+    //     권한: Repository permissions → Contents → Read and Write
+    //     대상: 결과 레포 하나만 선택
+    //  3. 아래 세 값 채우기
+    // ═══════════════════════════════════════════════════════
+    github: {
+        owner:  '',          // GitHub 유저명 (예: 'myname')
+        repo:   '',          // 결과 저장 레포 이름 (예: 'blindtest-results')
+        token:  '',          // Fine-grained PAT
+        branch: 'main',
+    },
+
+    // ═══════════════════════════════════════════════════════
+    //  방법 B — Google Apps Script (Google Sheets에 저장)
+    //  gas-backend.js 참고. A와 B 동시 사용 가능.
+    // ═══════════════════════════════════════════════════════
+    scriptUrl: '',
+
+    // 오디오 파일은 audio/ 폴더에 넣어주세요
+    // 파일명: 01_original.mp3 / 01_remastered.mp3 형식
+    songs: [
+        { id:  1, title: 'Track 01', original: 'audio/01_original.mp3', remastered: 'audio/01_remastered.mp3' },
+        { id:  2, title: 'Track 02', original: 'audio/02_original.mp3', remastered: 'audio/02_remastered.mp3' },
+        { id:  3, title: 'Track 03', original: 'audio/03_original.mp3', remastered: 'audio/03_remastered.mp3' },
+        { id:  4, title: 'Track 04', original: 'audio/04_original.mp3', remastered: 'audio/04_remastered.mp3' },
+        { id:  5, title: 'Track 05', original: 'audio/05_original.mp3', remastered: 'audio/05_remastered.mp3' },
+        { id:  6, title: 'Track 06', original: 'audio/06_original.mp3', remastered: 'audio/06_remastered.mp3' },
+        { id:  7, title: 'Track 07', original: 'audio/07_original.mp3', remastered: 'audio/07_remastered.mp3' },
+        { id:  8, title: 'Track 08', original: 'audio/08_original.mp3', remastered: 'audio/08_remastered.mp3' },
+        { id:  9, title: 'Track 09', original: 'audio/09_original.mp3', remastered: 'audio/09_remastered.mp3' },
+        { id: 10, title: 'Track 10', original: 'audio/10_original.mp3', remastered: 'audio/10_remastered.mp3' },
+    ]
+};
+
+// ══════════════════════════════════════════════════════
+
+let sessionId = '';
+let tracks    = [];
+let idx       = 0;
+let vote      = null;
+let audA = null, audB = null;
+
+function uid() {
+    return (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).toUpperCase();
+}
+
+// ── Start ──
+
+function startTest() {
+    sessionId = uid();
+
+    tracks = CONFIG.songs.map(s => {
+        const aOrig = Math.random() > 0.5;
+        return { ...s, aOrig, pathA: aOrig ? s.original : s.remastered, pathB: aOrig ? s.remastered : s.original, vote: null };
+    });
+
+    const dotsEl = document.getElementById('dots');
+    dotsEl.innerHTML = tracks.map((_, i) => `<div class="dot" id="d${i}"></div>`).join('');
+    document.getElementById('track-total').textContent = tracks.length;
+    document.getElementById('score-total').textContent = tracks.length;
+
+    showScreen('test');
+    loadTrack(0);
+}
+
+// ── Load track ──
+
+function loadTrack(i) {
+    idx  = i;
+    vote = null;
+
+    const t = tracks[i];
+    document.getElementById('track-num').textContent = i + 1;
+
+    // dots
+    tracks.forEach((_, j) => {
+        document.getElementById(`d${j}`).className =
+            'dot' + (j < i ? ' done' : j === i ? ' current' : '');
+    });
+
+    // reset vote UI
+    ['a','same','b'].forEach(k => document.getElementById(`vbtn-${k}`).classList.remove('selected'));
+    document.getElementById('btn-next').disabled = true;
+    document.getElementById('btn-next').textContent = i === tracks.length - 1 ? '완료 →' : '다음 →';
+
+    // tear down old audio
+    stopAll();
+    [audA, audB].forEach(a => { if (a) { a.src = ''; } });
+
+    audA = new Audio(t.pathA);
+    audB = new Audio(t.pathB);
+    audA.preload = audB.preload = 'auto';
+
+    wireAudio('a', audA);
+    wireAudio('b', audB);
+    resetPlayer('a');
+    resetPlayer('b');
+}
+
+function wireAudio(side, aud) {
+    aud.addEventListener('loadedmetadata', () => {
+        document.getElementById(`tdur-${side}`).textContent = fmt(aud.duration);
+    });
+    aud.addEventListener('timeupdate', () => {
+        if (!aud.duration) return;
+        document.getElementById(`pfill-${side}`).style.width = (aud.currentTime / aud.duration * 100) + '%';
+        document.getElementById(`tcur-${side}`).textContent  = fmt(aud.currentTime);
+    });
+    aud.addEventListener('ended', () => { setIcon(side, 'play'); document.getElementById(`card-${side}`).classList.remove('is-playing'); });
+    aud.addEventListener('error', () => { document.getElementById(`tdur-${side}`).textContent = '오류'; });
+}
+
+function resetPlayer(side) {
+    document.getElementById(`pfill-${side}`).style.width = '0%';
+    document.getElementById(`tcur-${side}`).textContent  = '0:00';
+    document.getElementById(`tdur-${side}`).textContent  = '—';
+    document.getElementById(`card-${side}`).classList.remove('is-playing');
+    setIcon(side, 'play');
+}
+
+// ── Playback ──
+
+function togglePlay(side) {
+    const aud = side === 'a' ? audA : audB;
+    const oth = side === 'a' ? audB : audA;
+    const os  = side === 'a' ? 'b'  : 'a';
+
+    if (aud.paused) {
+        if (!oth.paused) {
+            oth.pause();
+            document.getElementById(`card-${os}`).classList.remove('is-playing');
+            setIcon(os, 'play');
+        }
+        aud.play().catch(() => {});
+        document.getElementById(`card-${side}`).classList.add('is-playing');
+        setIcon(side, 'pause');
+    } else {
+        aud.pause();
+        document.getElementById(`card-${side}`).classList.remove('is-playing');
+        setIcon(side, 'play');
+    }
+}
+
+function stopAll() {
+    ['a','b'].forEach(side => {
+        const aud = side === 'a' ? audA : audB;
+        if (aud && !aud.paused) {
+            aud.pause();
+            document.getElementById(`card-${side}`)?.classList.remove('is-playing');
+            setIcon(side, 'play');
+        }
+    });
+}
+
+function seek(e, side) {
+    const aud  = side === 'a' ? audA : audB;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const r    = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    if (aud.duration) aud.currentTime = r * aud.duration;
+}
+
+const PLAY_ICON  = '<polygon points="5,3 19,12 5,21"/>';
+const PAUSE_ICON = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+
+function setIcon(side, state) {
+    document.getElementById(`icon-${side}`).innerHTML = state === 'play' ? PLAY_ICON : PAUSE_ICON;
+}
+
+// ── Vote ──
+
+function castVote(choice) {
+    vote = choice;
+    tracks[idx].vote = choice;
+    ['a','same','b'].forEach(k => document.getElementById(`vbtn-${k}`).classList.remove('selected'));
+    const map = { A:'a', same:'same', B:'b' };
+    document.getElementById(`vbtn-${map[choice]}`).classList.add('selected');
+    document.getElementById('btn-next').disabled = false;
+}
+
+// ── Next ──
+
+function nextTrack() {
+    stopAll();
+    if (idx < tracks.length - 1) {
+        loadTrack(idx + 1);
+    } else {
+        finish();
+    }
+}
+
+// ── Finish ──
+
+function finish() {
+    const results = tracks.map(t => {
+        let preferred;
+        if (t.vote === 'same') preferred = 'same';
+        else if (t.vote === 'A') preferred = t.aOrig ? 'original' : 'remastered';
+        else preferred = t.aOrig ? 'remastered' : 'original';
+        return { trackId: t.id, title: t.title, aIsOriginal: t.aOrig, userVote: t.vote, preferred };
+    });
+
+    const rmCount = results.filter(r => r.preferred === 'remastered').length;
+    document.getElementById('score').textContent = rmCount;
+
+    document.getElementById('result-list').innerHTML = results.map(r => {
+        const cls  = r.preferred;
+        const text = cls === 'remastered' ? '리마스터링 선호' : cls === 'original' ? '오리지널 선호' : '차이 없음';
+        return `<div class="result-row"><span class="rname">${r.title}</span><span class="badge ${cls}">${text}</span></div>`;
+    }).join('');
+
+    showScreen('done');
+    submit(results);
+}
+
+// ── Data submission ──
+
+async function submit(results) {
+    const payload = {
+        sessionId,
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        results,
+    };
+
+    const ok = await Promise.any([
+        submitGitHub(payload),
+        submitGAS(payload),
+    ]).catch(() => false);
+
+    toast(ok ? '결과가 저장되었습니다 ✓' : '백엔드 미설정 — CSV 다운로드를 이용하세요');
+}
+
+async function submitGitHub(payload) {
+    const { owner, repo, token, branch } = CONFIG.github;
+    if (!owner || !repo || !token) return false;
+
+    // 파일명: results/YYYYMMDD-HHMMSS-SESSIONID.json
+    const ts       = payload.timestamp.replace(/[-:]/g,'').replace('T','-').slice(0,15);
+    const filename = `results/${ts}-${payload.sessionId}.json`;
+    const content  = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+
+    const res = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/contents/${filename}`,
+        {
+            method: 'PUT',
+            headers: {
+                'Authorization':        `Bearer ${token}`,
+                'Content-Type':         'application/json',
+                'X-GitHub-Api-Version': '2022-11-28',
+            },
+            body: JSON.stringify({ message: `result: ${payload.sessionId}`, content, branch }),
+        }
+    );
+
+    if (!res.ok) throw new Error('github failed');
+    return true;
+}
+
+async function submitGAS(payload) {
+    if (!CONFIG.scriptUrl) return false;
+
+    await fetch(CONFIG.scriptUrl, {
+        method:  'POST',
+        mode:    'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+    });
+    return true;
+}
+
+function downloadCSV() {
+    const results = tracks.map(t => {
+        let preferred;
+        if (t.vote === 'same') preferred = 'same';
+        else if (t.vote === 'A') preferred = t.aOrig ? 'original' : 'remastered';
+        else preferred = t.aOrig ? 'remastered' : 'original';
+        return [sessionId, new Date().toISOString(), t.id, t.title, t.aOrig, t.vote, preferred];
+    });
+
+    const header = ['세션ID','타임스탬프','트랙ID','트랙명','A=오리지널','투표','선호버전'];
+    const csv    = [header, ...results].map(r => r.join(',')).join('\n');
+    const blob   = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url    = URL.createObjectURL(blob);
+    const a      = document.createElement('a');
+    a.href = url; a.download = `blindtest-${sessionId}.csv`; a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ── Utils ──
+
+function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(`screen-${name}`).classList.add('active');
+}
+
+function fmt(sec) {
+    if (!isFinite(sec)) return '0:00';
+    const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+let _tt;
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
