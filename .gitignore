@@ -1,1 +1,4 @@
 .claude/
+
+# READ_KEY가 들어있는 백엔드 템플릿 — 공개 레포에 올리지 않음 (로컬 전용)
+gas-backend.js

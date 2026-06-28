@@ -386,23 +386,9 @@
 const CONFIG = {
     // ═══════════════════════════════════════════════════════
     //  방법 A — GitHub 직접 저장 (git pull로 확인)          ★추천★
-    //  1. 결과 저장용 레포를 별도로 만드세요 (private 가능)
-    //  2. github.com → Settings → Developer settings
-    //     → Fine-grained tokens → Generate new token
-    //     권한: Repository permissions → Contents → Read and Write
-    //     대상: 결과 레포 하나만 선택
-    //  3. 아래 세 값 채우기
-    // ═══════════════════════════════════════════════════════
-    github: {
-        owner:  'YuanArchive',
-        repo:   'blind-test-results',
-        token:  '',  // 대시보드에서 localStorage로 관리 — 여기엔 넣지 마세요
-        branch: 'main',
-    },
-
-    // ═══════════════════════════════════════════════════════
-    //  방법 B — Google Apps Script (Google Sheets에 저장)
-    //  gas-backend.js 참고. A와 B 동시 사용 가능.
+    //  결과 수집 — Google Apps Script 웹앱 URL
+    //  gas-backend.js 를 GAS에 배포한 뒤 나오는 URL을 붙여넣으세요.
+    //  (참여자의 응답이 이 URL로 전송되어 Google Sheets에 저장됩니다)
     // ═══════════════════════════════════════════════════════
     scriptUrl: '',
 
@@ -612,50 +598,23 @@ async function submit(results) {
         results,
     };
 
-    const ok = await Promise.any([
-        submitGitHub(payload),
-        submitGAS(payload),
-    ]).catch(() => false);
+    if (!CONFIG.scriptUrl) {
+        toast('백엔드가 설정되지 않았습니다');
+        return;
+    }
 
-    toast(ok ? '결과가 저장되었습니다 ✓' : '백엔드 미설정 — CSV 다운로드를 이용하세요');
-}
-
-async function submitGitHub(payload) {
-    const { owner, repo, token, branch } = CONFIG.github;
-    if (!owner || !repo || !token) return false;
-
-    // 파일명: results/YYYYMMDD-HHMMSS-SESSIONID.json
-    const ts       = payload.timestamp.replace(/[-:]/g,'').replace('T','-').slice(0,15);
-    const filename = `results/${ts}-${payload.sessionId}.json`;
-    const content  = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-
-    const res = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/contents/${filename}`,
-        {
-            method: 'PUT',
-            headers: {
-                'Authorization':        `Bearer ${token}`,
-                'Content-Type':         'application/json',
-                'X-GitHub-Api-Version': '2022-11-28',
-            },
-            body: JSON.stringify({ message: `result: ${payload.sessionId}`, content, branch }),
-        }
-    );
-
-    if (!res.ok) throw new Error('github failed');
-    return true;
-}
-
-async function submitGAS(payload) {
-    if (!CONFIG.scriptUrl) return false;
-
-    await fetch(CONFIG.scriptUrl, {
-        method:  'POST',
-        mode:    'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
-    });
-    return true;
+    try {
+        // no-cors + text/plain → 프리플라이트 없이 GAS로 전송 (응답은 읽지 않음)
+        await fetch(CONFIG.scriptUrl, {
+            method:  'POST',
+            mode:    'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body:    JSON.stringify(payload),
+        });
+        toast('결과가 저장되었습니다 ✓');
+    } catch {
+        toast('저장에 실패했습니다 — 네트워크를 확인하세요');
+    }
 }
 
 

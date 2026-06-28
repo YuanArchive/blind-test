@@ -55,7 +55,7 @@
         }
         .setup-title { font-size: 1.2rem; font-weight: 800; }
         .setup-desc  { font-size: 0.84rem; color: var(--muted); line-height: 1.6; }
-        .setup-desc a { color: var(--accent); }
+        .setup-desc code { color: var(--accent); font-size: 0.8rem; }
 
         .input-wrap { display: flex; flex-direction: column; gap: 0.4rem; }
         .input-label { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
@@ -227,36 +227,34 @@
 </head>
 <body>
 
-<!-- ── 첫 실행: 토큰 입력 ── -->
+<!-- ── 첫 실행: 조회 키 입력 ── -->
 <div id="setup-screen">
     <div class="setup-card">
         <div class="setup-icon">🔑</div>
-        <div>
-            <div class="setup-title">GitHub 토큰 설정</div>
-        </div>
+        <div><div class="setup-title">대시보드 잠금 해제</div></div>
         <p class="setup-desc">
-            결과 레포(<code>blind-test-results</code>)를 읽기 위한 Fine-grained PAT를 입력하세요.<br>
-            토큰은 이 브라우저에만 저장되며 코드나 GitHub에는 전혀 업로드되지 않습니다.
+            결과를 보려면 <code>조회 키</code>를 입력하세요.<br>
+            (GAS 백엔드의 <code>READ_KEY</code> 값과 동일해야 합니다)<br>
+            입력한 키는 이 브라우저에만 저장됩니다.
         </p>
 
         <div class="input-wrap">
-            <div class="input-label">GitHub Fine-grained PAT</div>
+            <div class="input-label">조회 키 (READ_KEY)</div>
             <input
                 type="password"
-                id="token-input"
+                id="key-input"
                 class="token-input"
-                placeholder="github_pat_..."
-                onkeydown="if(event.key==='Enter') saveToken()"
+                placeholder="예: shx-blind-2026"
+                onkeydown="if(event.key==='Enter') saveKey()"
             >
         </div>
 
         <div class="setup-note">
-            발급 방법: GitHub → Settings → Developer settings<br>
-            → Fine-grained tokens → Generate new token<br>
-            → blind-test-results 레포 선택 → Contents: Read-only
+            키는 GAS 코드 상단의 <b>var READ_KEY</b> 에 정의되어 있습니다.<br>
+            기본값은 <b>shx-blind-2026</b> 이며, GAS에서 바꿨다면 바꾼 값을 입력하세요.
         </div>
 
-        <button class="btn-save" onclick="saveToken()">저장 후 결과 보기</button>
+        <button class="btn-save" onclick="saveKey()">결과 보기</button>
     </div>
 </div>
 
@@ -269,7 +267,7 @@
         </div>
         <div class="header-actions">
             <button class="btn-sm" onclick="load()">새로고침</button>
-            <button class="btn-sm danger" onclick="clearToken()">토큰 초기화</button>
+            <button class="btn-sm danger" onclick="clearKey()">키 초기화</button>
         </div>
     </div>
 
@@ -279,26 +277,29 @@
 </div>
 
 <script>
-const OWNER  = 'YuanArchive';
-const REPO   = 'blind-test-results';
-const BRANCH = 'main';
-const API    = 'https://api.github.com';
-const LS_KEY = 'blindtest_token';
+// ═══════════════════════════════════════════════════════
+//  GAS 웹앱 URL — 배포 후 여기에 붙여넣으세요
+//  (index.html 의 scriptUrl 과 동일한 값)
+// ═══════════════════════════════════════════════════════
+const GAS_URL = '';
+// ═══════════════════════════════════════════════════════
 
-function getToken() { return localStorage.getItem(LS_KEY) || ''; }
+const LS_KEY = 'blindtest_readkey';
 
-function saveToken() {
-    const t = document.getElementById('token-input').value.trim();
-    if (!t) { alert('토큰을 입력해 주세요.'); return; }
-    localStorage.setItem(LS_KEY, t);
+function getKey() { return localStorage.getItem(LS_KEY) || ''; }
+
+function saveKey() {
+    const k = document.getElementById('key-input').value.trim();
+    if (!k) { alert('조회 키를 입력해 주세요.'); return; }
+    localStorage.setItem(LS_KEY, k);
     showDashboard();
 }
 
-function clearToken() {
+function clearKey() {
     localStorage.removeItem(LS_KEY);
     document.getElementById('dashboard-screen').style.display = 'none';
     document.getElementById('setup-screen').style.display = 'flex';
-    document.getElementById('token-input').value = '';
+    document.getElementById('key-input').value = '';
 }
 
 function showDashboard() {
@@ -311,45 +312,34 @@ async function load() {
     document.getElementById('main').innerHTML =
         '<div class="loading"><div class="spinner"></div><br>결과를 불러오는 중...</div>';
 
-    const token = getToken();
-    const headers = {
-        'Authorization':        `Bearer ${token}`,
-        'X-GitHub-Api-Version': '2022-11-28',
-    };
+    if (!GAS_URL) {
+        document.getElementById('main').innerHTML =
+            '<div class="error-msg">GAS_URL 이 설정되지 않았습니다.<br>dashboard.html 상단에 웹앱 URL을 입력하세요.</div>';
+        return;
+    }
 
     try {
-        const listRes = await fetch(`${API}/repos/${OWNER}/${REPO}/contents/results`, { headers });
+        const url = `${GAS_URL}?key=${encodeURIComponent(getKey())}&t=${Date.now()}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-        if (listRes.status === 401) {
+        const data = await res.json();
+
+        if (data && data.error === 'unauthorized') {
             document.getElementById('main').innerHTML =
-                '<div class="error-msg">토큰이 유효하지 않습니다.<br>오른쪽 위 "토큰 초기화"를 눌러 다시 입력하세요.</div>';
+                '<div class="error-msg">조회 키가 올바르지 않습니다.<br>오른쪽 위 "키 초기화"를 눌러 다시 입력하세요.</div>';
             return;
         }
 
-        if (listRes.status === 404) {
+        const sessions = (Array.isArray(data) ? data : [])
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if (sessions.length === 0) {
             document.getElementById('main').innerHTML =
                 '<div class="empty">아직 결과가 없습니다.<br>첫 번째 참여자를 기다리는 중...</div>';
             document.getElementById('last-updated').textContent = '결과 없음';
             return;
         }
-
-        if (!listRes.ok) throw new Error(`API 오류 ${listRes.status}`);
-
-        const files = (await listRes.json()).filter(f => f.name.endsWith('.json'));
-
-        if (files.length === 0) {
-            document.getElementById('main').innerHTML = '<div class="empty">아직 결과가 없습니다.</div>';
-            return;
-        }
-
-        const sessions = (await Promise.all(
-            files.map(f =>
-                fetch(f.url, { headers })
-                    .then(r => r.json())
-                    .then(d => JSON.parse(atob(d.content.replace(/\n/g, ''))))
-                    .catch(() => null)
-            )
-        )).filter(Boolean).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         render(sessions);
         document.getElementById('last-updated').textContent =
@@ -357,17 +347,17 @@ async function load() {
 
     } catch (e) {
         document.getElementById('main').innerHTML =
-            `<div class="error-msg">오류: ${e.message}</div>`;
+            `<div class="error-msg">불러오기 오류: ${e.message}<br>GAS URL과 배포 설정을 확인하세요.</div>`;
     }
 }
 
 function render(sessions) {
     const trackMap = {};
     sessions.forEach(s => {
-        s.results.forEach(r => {
+        (s.results || []).forEach(r => {
             if (!trackMap[r.trackId])
                 trackMap[r.trackId] = { id: r.trackId, title: r.title, remastered: 0, original: 0, same: 0 };
-            trackMap[r.trackId][r.preferred]++;
+            if (trackMap[r.trackId][r.preferred] !== undefined) trackMap[r.trackId][r.preferred]++;
         });
     });
 
@@ -414,18 +404,18 @@ function render(sessions) {
         <div class="section-title">개별 응답 (${sessions.length}명)</div>
         <div class="sessions-list">
             ${sessions.map((s, i) => {
-                const rm   = s.results.filter(r => r.preferred === 'remastered').length;
+                const rm   = (s.results || []).filter(r => r.preferred === 'remastered').length;
                 const date = new Date(s.timestamp).toLocaleString('ko-KR');
                 return `
                 <div class="session-card">
                     <div class="session-header" onclick="toggle(${i})">
                         <span class="session-id">${s.sessionId}</span>
                         <span class="session-time">${date}</span>
-                        <span class="session-score">리마 ${rm}/${s.results.length}</span>
+                        <span class="session-score">리마 ${rm}/${(s.results||[]).length}</span>
                         <span class="session-toggle" id="arr${i}">▼</span>
                     </div>
                     <div class="session-body" id="sb${i}">
-                        ${s.results.map(r => `
+                        ${(s.results || []).map(r => `
                             <div class="session-track">
                                 <span class="session-track-name">${r.title}</span>
                                 <span class="sbadge ${r.preferred}">${
@@ -440,14 +430,12 @@ function render(sessions) {
 }
 
 function toggle(i) {
-    const body = document.getElementById(`sb${i}`);
-    const arr  = document.getElementById(`arr${i}`);
-    body.classList.toggle('open');
-    arr.classList.toggle('open');
+    document.getElementById(`sb${i}`).classList.toggle('open');
+    document.getElementById(`arr${i}`).classList.toggle('open');
 }
 
-// 시작: 토큰 있으면 바로 대시보드, 없으면 입력 화면
-if (getToken()) showDashboard();
+// 시작: 키가 있으면 바로 대시보드, 없으면 입력 화면
+if (getKey()) showDashboard();
 </script>
 </body>
 </html>
