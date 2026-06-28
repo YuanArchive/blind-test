@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>블라인드 테스트 결과</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0c0c0e;
+            --surface: #161619;
+            --surface2: #1c1c21;
+            --border: #2c2c38;
+            --accent: #c8a96e;
+            --accent-dim: rgba(200,169,110,0.12);
+            --blue: #4e8fe8;
+            --blue-dim: rgba(78,143,232,0.12);
+            --green: #5aa87a;
+            --green-dim: rgba(90,168,122,0.12);
+            --red: #e06060;
+            --red-dim: rgba(224,96,96,0.12);
+            --text: #e4e4ec;
+            --muted: #7878a0;
+            --dim: #3a3a58;
+            --r: 12px;
+            --rs: 8px;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        .container { max-width: 800px; margin: 0 auto; }
+
+        /* Header */
+        .page-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+        }
+        .page-title { font-size: 1.4rem; font-weight: 800; }
+        .page-sub   { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+
+        .btn-refresh {
+            padding: 0.55rem 1.1rem;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--rs); color: var(--muted);
+            font-size: 0.82rem; font-weight: 600; cursor: pointer;
+            font-family: inherit; transition: all 0.15s;
+        }
+        .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* Summary cards */
+        .summary-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem; margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--r); padding: 1.25rem;
+            text-align: center;
+        }
+        .stat-val  { font-size: 2rem; font-weight: 800; line-height: 1; }
+        .stat-label{ font-size: 0.75rem; color: var(--muted); margin-top: 0.4rem; }
+        .stat-card.accent .stat-val { color: var(--accent); }
+        .stat-card.blue   .stat-val { color: var(--blue);   }
+        .stat-card.green  .stat-val { color: var(--green);  }
+
+        /* Track table */
+        .section-title {
+            font-size: 0.8rem; font-weight: 700; color: var(--muted);
+            letter-spacing: 0.06em; text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+
+        .track-table {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--r); overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .track-row {
+            display: grid;
+            grid-template-columns: 90px 1fr 70px 70px 70px 60px;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            gap: 0.5rem;
+            font-size: 0.84rem;
+        }
+        .track-row:last-child { border-bottom: none; }
+        .track-row.header {
+            font-size: 0.72rem; color: var(--muted); font-weight: 700;
+            background: var(--surface2); letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .track-name { color: var(--text); font-weight: 600; }
+
+        /* Bar */
+        .bar-wrap {
+            display: flex; align-items: center; gap: 6px;
+            width: 100%;
+        }
+        .bar-bg {
+            flex: 1; height: 6px; background: var(--border);
+            border-radius: 3px; overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%; border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        .bar-fill.rm { background: var(--accent); }
+        .bar-fill.og { background: var(--blue); }
+
+        .count-rm { color: var(--accent); font-weight: 700; text-align: right; }
+        .count-og { color: var(--blue);   font-weight: 700; text-align: right; }
+        .count-sm { color: var(--muted);  font-weight: 700; text-align: right; }
+        .pct      { font-size: 0.8rem; color: var(--muted); text-align: right; }
+        .pct.high { color: var(--accent); font-weight: 700; }
+
+        /* Sessions */
+        .sessions-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+        .session-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--rs); overflow: hidden;
+        }
+
+        .session-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.75rem 1rem; cursor: pointer; gap: 0.5rem;
+            user-select: none;
+        }
+        .session-header:hover { background: var(--surface2); }
+
+        .session-id   { font-size: 0.8rem; font-weight: 700; color: var(--accent); font-family: monospace; }
+        .session-time { font-size: 0.72rem; color: var(--muted); }
+        .session-score{ font-size: 0.78rem; color: var(--muted); }
+        .session-toggle { font-size: 0.7rem; color: var(--dim); }
+
+        .session-body {
+            display: none;
+            border-top: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 0.4rem;
+        }
+        .session-body.hidden { display: none; }
+
+        .session-track {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.76rem; padding: 0.2rem 0;
+        }
+        .session-track-name { color: var(--muted); }
+        .sbadge {
+            padding: 0.15rem 0.5rem; border-radius: 4px;
+            font-size: 0.68rem; font-weight: 700;
+        }
+        .sbadge.remastered { background: var(--accent-dim); color: var(--accent); }
+        .sbadge.original   { background: var(--blue-dim);   color: var(--blue);   }
+        .sbadge.same       { background: var(--surface2);    color: var(--muted);  }
+
+        /* States */
+        .loading, .empty, .error {
+            text-align: center; padding: 4rem 2rem;
+            color: var(--muted); font-size: 0.9rem;
+        }
+        .spinner {
+            display: inline-block; width: 28px; height: 28px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 1rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 600px) {
+            .summary-grid { grid-template-columns: repeat(3, 1fr); }
+            .track-row { grid-template-columns: 70px 1fr 50px 50px 50px 50px; font-size: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="page-header">
+        <div>
+            <div class="page-title">블라인드 테스트 결과</div>
+            <div class="page-sub" id="last-updated">로딩 중...</div>
+        </div>
+        <button class="btn-refresh" onclick="load()">새로고침</button>
+    </div>
+
+    <div id="main">
+        <div class="loading">
+            <div class="spinner"></div><br>결과를 불러오는 중...
+        </div>
+    </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  CONFIG — 수정 불필요 (자동 세팅됨)
+// ═══════════════════════════════════════
+const OWNER  = 'YuanArchive';
+const REPO   = 'blind-test-results';
+const TOKEN  = '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';
+const BRANCH = 'main';
+const API    = 'https://api.github.com';
+// ═══════════════════════════════════════
+
+const headers = {
+    'Authorization':        `Bearer ${TOKEN}`,
+    'X-GitHub-Api-Version': '2022-11-28',
+};
+
+async function load() {
+    document.getElementById('main').innerHTML =
+        '<div class="loading"><div class="spinner"></div><br>결과를 불러오는 중...</div>';
+
+    try {
+        // 1. results/ 폴더 파일 목록
+        const listRes = await fetch(`${API}/repos/${OWNER}/${REPO}/contents/results`, { headers });
+
+        if (listRes.status === 404) {
+            document.getElementById('main').innerHTML =
+                '<div class="empty">아직 결과가 없습니다.<br>첫 번째 참여자를 기다리는 중...</div>';
+            document.getElementById('last-updated').textContent = '결과 없음';
+            return;
+        }
+
+        if (!listRes.ok) throw new Error(`API 오류 ${listRes.status}`);
+
+        const files = (await listRes.json()).filter(f => f.name.endsWith('.json'));
+
+        if (files.length === 0) {
+            document.getElementById('main').innerHTML =
+                '<div class="empty">아직 결과가 없습니다.</div>';
+            return;
+        }
+
+        // 2. 각 파일 내용 가져오기
+        const sessions = (await Promise.all(
+            files.map(f =>
+                fetch(f.url, { headers })
+                    .then(r => r.json())
+                    .then(d => JSON.parse(atob(d.content.replace(/\n/g, ''))))
+                    .catch(() => null)
+            )
+        )).filter(Boolean);
+
+        render(sessions);
+        document.getElementById('last-updated').textContent =
+            `마지막 업데이트: ${new Date().toLocaleString('ko-KR')} · ${sessions.length}명 참여`;
+
+    } catch (e) {
+        document.getElementById('main').innerHTML =
+            `<div class="error">오류: ${e.message}<br><br>토큰이 유효한지 확인하세요.</div>`;
+    }
+}
+
+function render(sessions) {
+    // ── 집계 ──
+    const trackMap = {};
+
+    sessions.forEach(s => {
+        s.results.forEach(r => {
+            if (!trackMap[r.trackId]) {
+                trackMap[r.trackId] = { id: r.trackId, title: r.title, remastered: 0, original: 0, same: 0 };
+            }
+            trackMap[r.trackId][r.preferred]++;
+        });
+    });
+
+    const tracks = Object.values(trackMap).sort((a, b) => a.id - b.id);
+    const total  = sessions.length;
+
+    // 전체 리마스터링 선호 (same 제외)
+    let totalVotes = 0, totalRM = 0;
+    tracks.forEach(t => {
+        totalRM += t.remastered;
+        totalVotes += t.remastered + t.original;
+    });
+    const rmPct = totalVotes ? Math.round(totalRM / totalVotes * 100) : 0;
+
+    // ── 렌더링 ──
+    const el = document.getElementById('main');
+    el.innerHTML = `
+        <!-- 요약 -->
+        <div class="summary-grid">
+            <div class="stat-card accent">
+                <div class="stat-val">${total}</div>
+                <div class="stat-label">총 참여자</div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-val">${rmPct}%</div>
+                <div class="stat-label">리마스터링 선호율</div>
+            </div>
+            <div class="stat-card blue">
+                <div class="stat-val">${100 - rmPct}%</div>
+                <div class="stat-label">오리지널 선호율</div>
+            </div>
+        </div>
+
+        <!-- 트랙별 -->
+        <div class="section-title">트랙별 결과</div>
+        <div class="track-table">
+            <div class="track-row header">
+                <div>트랙</div>
+                <div>리마스터링</div>
+                <div style="text-align:right">리마</div>
+                <div style="text-align:right">원본</div>
+                <div style="text-align:right">동일</div>
+                <div style="text-align:right">선호율</div>
+            </div>
+            ${tracks.map(t => {
+                const votes = t.remastered + t.original;
+                const pct   = votes ? Math.round(t.remastered / votes * 100) : 0;
+                const rmW   = votes ? (t.remastered / votes * 100) : 0;
+                return `
+                <div class="track-row">
+                    <div class="track-name">${t.title}</div>
+                    <div class="bar-wrap">
+                        <div class="bar-bg">
+                            <div class="bar-fill rm" style="width:${rmW}%"></div>
+                        </div>
+                    </div>
+                    <div class="count-rm">${t.remastered}</div>
+                    <div class="count-og">${t.original}</div>
+                    <div class="count-sm">${t.same}</div>
+                    <div class="pct ${pct >= 60 ? 'high' : ''}">${pct}%</div>
+                </div>`;
+            }).join('')}
+        </div>
+
+        <!-- 개별 세션 -->
+        <div class="section-title">개별 응답 (${sessions.length}명)</div>
+        <div class="sessions-list">
+            ${sessions.map((s, i) => {
+                const rm = s.results.filter(r => r.preferred === 'remastered').length;
+                const date = new Date(s.timestamp).toLocaleString('ko-KR');
+                const bodyId = `sb${i}`;
+                return `
+                <div class="session-card">
+                    <div class="session-header" onclick="toggle('${bodyId}')">
+                        <span class="session-id">${s.sessionId}</span>
+                        <span class="session-time">${date}</span>
+                        <span class="session-score">리마스터링 ${rm} / ${s.results.length}</span>
+                        <span class="session-toggle">▼</span>
+                    </div>
+                    <div class="session-body hidden" id="${bodyId}">
+                        ${s.results.map(r => `
+                            <div class="session-track">
+                                <span class="session-track-name">${r.title}</span>
+                                <span class="sbadge ${r.preferred}">${
+                                    r.preferred === 'remastered' ? '리마스터링' :
+                                    r.preferred === 'original'   ? '오리지널'   : '차이없음'
+                                }</span>
+                            </div>`).join('')}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>
+    `;
+}
+
+function toggle(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('hidden');
+}
+
+load();
+</script>
+</body>
+</html>

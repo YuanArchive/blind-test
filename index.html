@@ -374,9 +374,6 @@
 
     <div class="result-list" id="result-list"></div>
 
-    <div class="action-row">
-        <button class="btn btn-ghost" onclick="downloadCSV()">📥 결과 다운로드 (CSV)</button>
-    </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -661,23 +658,6 @@ async function submitGAS(payload) {
     return true;
 }
 
-function downloadCSV() {
-    const results = tracks.map(t => {
-        let preferred;
-        if (t.vote === 'same') preferred = 'same';
-        else if (t.vote === 'A') preferred = t.aOrig ? 'original' : 'remastered';
-        else preferred = t.aOrig ? 'remastered' : 'original';
-        return [sessionId, new Date().toISOString(), t.id, t.title, t.aOrig, t.vote, preferred];
-    });
-
-    const header = ['세션ID','타임스탬프','트랙ID','트랙명','A=오리지널','투표','선호버전'];
-    const csv    = [header, ...results].map(r => r.join(',')).join('\n');
-    const blob   = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url    = URL.createObjectURL(blob);
-    const a      = document.createElement('a');
-    a.href = url; a.download = `blindtest-${sessionId}.csv`; a.click();
-    URL.revokeObjectURL(url);
-}
 
 // ── Utils ──
 
