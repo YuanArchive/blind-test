@@ -232,6 +232,22 @@
             font-size: 2rem;
         }
 
+        .fineprint {
+            font-size: 0.72rem; color: var(--dim);
+            text-align: center; line-height: 1.5; margin-top: 0.25rem;
+        }
+
+        /* BLOCKED SCREEN */
+        #screen-blocked { align-items: center; text-align: center; gap: 1rem; }
+        .blocked-icon {
+            width: 72px; height: 72px;
+            background: var(--surface2);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem;
+        }
+        .blocked-text { color: var(--muted); font-size: 0.92rem; line-height: 1.7; }
+
         .score-line { color: var(--muted); font-size: 0.95rem; margin-top: 0.25rem; }
         .score-line strong { color: var(--accent); font-size: 1.5rem; font-weight: 800; }
 
@@ -300,7 +316,8 @@
         </div>
     </div>
 
-    <button class="btn btn-primary btn-lg btn-full" onclick="startTest()">테스트 시작하기 →</button>
+    <button id="start-btn" class="btn btn-primary btn-lg btn-full" onclick="startTest()">테스트 시작하기 →</button>
+    <p class="fineprint">중복 참여 방지를 위해 기기 식별 정보가 1회 수집됩니다. 한 기기당 한 번만 참여할 수 있습니다.</p>
 </div>
 
 <!-- ══════════════ TEST ══════════════ -->
@@ -376,6 +393,13 @@
 
 </div>
 
+<!-- ══════════════ BLOCKED ══════════════ -->
+<div id="screen-blocked" class="screen">
+    <div class="blocked-icon">🔒</div>
+    <h2>이미 참여하셨습니다</h2>
+    <p class="blocked-text">이 기기에서는 한 번만 참여할 수 있습니다.<br>소중한 의견 감사합니다.</p>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -385,7 +409,6 @@
 
 const CONFIG = {
     // ═══════════════════════════════════════════════════════
-    //  방법 A — GitHub 직접 저장 (git pull로 확인)          ★추천★
     //  결과 수집 — Google Apps Script 웹앱 URL
     //  gas-backend.js 를 GAS에 배포한 뒤 나오는 URL을 붙여넣으세요.
     //  (참여자의 응답이 이 URL로 전송되어 Google Sheets에 저장됩니다)
@@ -411,6 +434,7 @@ const CONFIG = {
 // ══════════════════════════════════════════════════════
 
 let sessionId = '';
+let deviceId  = '';
 let tracks    = [];
 let idx       = 0;
 let vote      = null;
@@ -420,9 +444,82 @@ function uid() {
     return (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).toUpperCase();
 }
 
+// ── 기기 식별 (중복 참여 방지) ──
+// localStorage 우선, 없으면 브라우저 핑거프린트로 재생성 → 캐시 삭제·시크릿 모드도 상당수 동일
+const LS_DEVICE = 'blindtest_device';
+const LS_DONE   = 'blindtest_done';
+
+function getDeviceId() {
+    let id = localStorage.getItem(LS_DEVICE);
+    if (!id) {
+        id = fingerprint();
+        try { localStorage.setItem(LS_DEVICE, id); } catch {}
+    }
+    return id;
+}
+
+function fingerprint() {
+    const n = navigator, s = screen;
+    const parts = [
+        n.userAgent, n.language, (n.languages || []).join(','),
+        n.platform, n.hardwareConcurrency || '', n.deviceMemory || '', n.maxTouchPoints || '',
+        s.width + 'x' + s.height, s.colorDepth,
+        Intl.DateTimeFormat().resolvedOptions().timeZone, new Date().getTimezoneOffset(),
+        canvasFp(),
+    ];
+    return cyrb53(parts.join('|||'));
+}
+
+function canvasFp() {
+    try {
+        const c = document.createElement('canvas');
+        const x = c.getContext('2d');
+        x.textBaseline = 'top';
+        x.font = "14px 'Arial'";
+        x.fillStyle = '#f60'; x.fillRect(125, 1, 62, 20);
+        x.fillStyle = '#069'; x.fillText('blindtest-fp-🎧', 2, 15);
+        x.fillStyle = 'rgba(102,204,0,0.7)'; x.fillText('blindtest-fp-🎧', 4, 17);
+        return c.toDataURL();
+    } catch { return 'no-canvas'; }
+}
+
+function cyrb53(str, seed = 0) {
+    let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+    for (let i = 0, ch; i < str.length; i++) {
+        ch = str.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507); h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507); h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+}
+
 // ── Start ──
 
-function startTest() {
+async function startTest() {
+    deviceId = getDeviceId();
+
+    const startBtn = document.getElementById('start-btn');
+
+    // 1) 이 브라우저에서 이미 완료했으면 즉시 차단
+    if (localStorage.getItem(LS_DONE)) { showScreen('blocked'); return; }
+
+    // 2) 서버에 이 기기가 이미 제출했는지 확인 (시크릿 모드·캐시삭제 우회 차단)
+    if (CONFIG.scriptUrl) {
+        startBtn.disabled = true;
+        startBtn.textContent = '확인 중...';
+        try {
+            const r = await fetch(`${CONFIG.scriptUrl}?check=${encodeURIComponent(deviceId)}&t=${Date.now()}`);
+            const d = await r.json();
+            if (d && d.exists) { showScreen('blocked'); return; }
+        } catch { /* 확인 실패 시엔 진행 (제출 단계에서 서버가 한 번 더 거름) */ }
+        finally {
+            startBtn.disabled = false;
+            startBtn.textContent = '테스트 시작하기 →';
+        }
+    }
+
     sessionId = uid();
 
     tracks = CONFIG.songs.map(s => {
@@ -593,10 +690,14 @@ function finish() {
 async function submit(results) {
     const payload = {
         sessionId,
+        deviceId,
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,
         results,
     };
+
+    // 이 브라우저는 완료 처리 (재참여 시 시작 화면에서 즉시 차단)
+    try { localStorage.setItem(LS_DONE, '1'); } catch {}
 
     if (!CONFIG.scriptUrl) {
         toast('백엔드가 설정되지 않았습니다');
